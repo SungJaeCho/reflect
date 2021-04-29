@@ -3,6 +3,8 @@ package com.cos.reflect.filter;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.util.Enumeration;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -57,13 +59,30 @@ public class Dispatcher implements Filter{
 		for (Method method : methods) { // 4바퀴 (join, login, user, hello)
 			Annotation annotation = method.getDeclaredAnnotation(RequestMapping.class);
 			RequestMapping requestMapping = (RequestMapping) annotation; //다운 캐스팅 이렇게하면 바로 RequestMapping을 new한것보다 사용할수 있는게 많음
-			System.out.println(requestMapping.value());
+//			System.out.println(requestMapping.value());
 			
 			if(requestMapping.value().equals(endPoint)) {
 				try {
-					String path = (String) method.invoke(userController);
-					RequestDispatcher dis = request.getRequestDispatcher(path);
-					dis.forward(request, response);
+					//파라미터 분석
+					Parameter[] params = method.getParameters();
+					String path = null;
+					if(params.length != 0) {
+//						System.out.println("params[0].getType() : " + params[0].getType());
+						Object dtoInstance = params[0].getType().newInstance();
+//						String username = request.getParameter("username");
+//						String password = request.getParameter("password");
+//						System.out.println("username : " + username);
+//						System.out.println("password : " + password);
+						Enumeration<String> keys = request.getParameterNames();//키값 
+						// keys값을 변형 ex:username => setUsername
+						
+						path = "/";
+					} else {
+						path = (String) method.invoke(userController);
+					}
+					
+					RequestDispatcher dis = request.getRequestDispatcher(path); //필터를 다시 안탐!! requestsend redirect는 다시 톰캣을 탐
+					dis.forward(request, response); // "/"로 포워딩
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
